@@ -1,8 +1,8 @@
 import { ApolloServer } from "apollo-server-micro";
-import { send } from "micro";
 import Cors from "micro-cors";
+import express, { Express, Request, Response } from "express";
 
-const cors = Cors();
+
 
 
 // Add a function to generate a random hash
@@ -180,10 +180,35 @@ const apolloServer = new ApolloServer({
 
 
 
-export default apolloServer.start().then(() => {
-    const handler = apolloServer.createHandler({ path: "/api/graphql" });
+const app: Express = express();
+
+const cors = Cors();
+
+export default async () => {
+    await apolloServer.start();
   
-    return cors((req, res) => {
-      return req.method === "OPTIONS" ? send(res, 200, "ok") : handler(req, res);
+    apolloServer.createHandler({ app, path: "/api/graphql" });
+  
+    // Optional: Add CORS handling if needed
+    app.use((req: Request, res: Response, next) => {
+      // Handle CORS headers here if necessary
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
+      // Handle preflight request
+      if (req.method === "OPTIONS") {
+        res.status(200).send("OK");
+      } else {
+        next();
+      }
     });
-  });
+  
+    // Optional: Add other middleware or routes if needed
+  
+    // Start the server
+    const port = process.env.PORT || 4000;
+    app.listen(port, () => {
+      console.log(`Server listening at http://localhost:${port}/api/graphql`);
+    });
+  };

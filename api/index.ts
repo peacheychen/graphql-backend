@@ -1,6 +1,8 @@
-import { ApolloServer } from '@apollo/server';
-import { startStandaloneServer } from '@apollo/server/standalone';
-// import { podcasts, episodes, comments, Podcast, Episode, Comment } from './mockdata';
+import { ApolloServer } from "apollo-server-micro";
+import { send } from "micro";
+import Cors from "micro-cors";
+
+const cors = Cors();
 
 
 // Add a function to generate a random hash
@@ -170,13 +172,18 @@ const resolvers = {
     };
 
 
-const server = new ApolloServer({
+
+const apolloServer = new ApolloServer({
     typeDefs,
     resolvers,
   });
+
+
+
+export default apolloServer.start().then(() => {
+    const handler = apolloServer.createHandler({ path: "/api/graphql" });
   
-const { url } = await startStandaloneServer(server, {
-    listen: { port: 4000 },
+    return cors((req, res) => {
+      return req.method === "OPTIONS" ? send(res, 200, "ok") : handler(req, res);
+    });
   });
-  
-  console.log(`🚀  Server ready at: ${url}`);
